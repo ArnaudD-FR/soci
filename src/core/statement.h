@@ -43,6 +43,7 @@ public:
 
     void alloc();
     void bind(values & v);
+    void bind_clean_up();
 
     void exchange(into_type_ptr const & i) { intos_.exchange(i); }
     template <typename T, typename Indicator>
@@ -87,9 +88,9 @@ public:
     std::string rewrite_for_procedure_call(std::string const & query);
 
 protected:
-    into_type_vector intos_;
-    use_type_vector uses_;
-    std::vector<indicator *> indicators_;
+    into_type_vector          intos_;
+    use_type_vector           uses_;
+    std::vector<indicator *>  indicators_;
 
 private:
 
@@ -195,6 +196,7 @@ public:
     void exchange(details::use_type_ptr const & u) { impl_->exchange(u); }
     template <typename T, typename Indicator>
     void exchange(details::use_container<T, Indicator>  const &uc) { impl_->exchange(uc); }
+    void bind_clean_up()                 { impl_->bind_clean_up(); }
     void clean_up()                      { impl_->clean_up(); }
 
     void prepare(std::string const & query,
