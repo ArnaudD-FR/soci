@@ -164,12 +164,7 @@ void statement_impl::bind_clean_up()
         uses_.resize(i - 1);
     }
 
-    std::size_t const indsize = indicators_.size();
-    for (std::size_t i = 0; i != indsize; ++i)
-    {
-        delete indicators_[i];
-        indicators_[i] = NULL;
-    }
+    indicators_.clear();
 }
 
 void statement_impl::clean_up()

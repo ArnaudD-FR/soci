@@ -14,6 +14,7 @@
 #include "use-type.h"
 #include "use.h"
 #include "soci-backend.h"
+#include "shared_ptr.h"
 #include "row.h"
 // std
 #include <cstddef>
@@ -90,7 +91,7 @@ public:
 protected:
     into_type_vector          intos_;
     use_type_vector           uses_;
-    std::vector<indicator *>  indicators_;
+    std::vector<shared_ptr<indicator> >  indicators_;
 
 private:
 

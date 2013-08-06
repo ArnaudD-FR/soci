@@ -8,9 +8,11 @@
 #ifndef SOCI_VALUES_H_INCLUDED
 #define SOCI_VALUES_H_INCLUDED
 
+#include "shared_ptr.h"
 #include "statement.h"
 #include "into-type.h"
 #include "use-type.h"
+
 // std
 #include <cstddef>
 #include <map>
@@ -171,7 +173,7 @@ public:
             index_.insert(std::make_pair(name, uses_.size()));
 
             indicator * pind = new indicator(indic);
-            indicators_.push_back(pind);
+            indicators_.push_back(shared_ptr<indicator>(pind));
 
             base_type baseValue;
             if (indic == i_ok)
@@ -181,7 +183,7 @@ public:
 
             details::copy_holder<base_type> * pcopy =
                     new details::copy_holder<base_type>(baseValue);
-            deepCopies_.push_back(pcopy);
+            deepCopies_.push_back(shared_ptr<soci::details::copy_base>(pcopy));
 
             uses_.push_back(new details::use_type<base_type>(
                     pcopy->value_, *pind, name));
@@ -194,7 +196,7 @@ public:
             {
                 type_conversion<T>::to_base(
                         value,
-                        static_cast<details::copy_holder<base_type>*>(deepCopies_[index])->value_,
+                        static_cast<details::copy_holder<base_type>*>(deepCopies_[index].get())->value_,
                         *indicators_[index]);
             }
         }
@@ -203,7 +205,7 @@ public:
     template <typename T>
     void set(const T & value, indicator indic = i_ok)
     {
-        indicator * pind = new indicator(indic);
+        shared_ptr<indicator> pind(new indicator(indic));
         indicators_.push_back(pind);
 
         typedef typename type_conversion<T>::base_type base_type;
@@ -212,7 +214,7 @@ public:
 
         details::copy_holder<base_type> * pcopy =
             new details::copy_holder<base_type>(baseValue);
-        deepCopies_.push_back(pcopy);
+        deepCopies_.push_back(shared_ptr<details::copy_base>(pcopy));
 
         uses_.push_back(new details::use_type<base_type>(
                 pcopy->value_, *pind));
@@ -234,15 +236,16 @@ public:
     column_properties const& get_properties(std::string const &name) const;
 
 private:
+    typedef std::map<details::use_type_base *, shared_ptr<indicator> > unused_t;
 
     //TODO To make values generally usable outside of type_conversion's,
     // these should be reference counted smart pointers
     row * row_;
     std::vector<details::standard_use_type *> uses_;
-    std::map<details::use_type_base *, indicator *> unused_;
-    std::vector<indicator *> indicators_;
+    unused_t unused_;
+    std::vector<shared_ptr<indicator> > indicators_;
     std::map<std::string, std::size_t> index_;
-    std::vector<details::copy_base *> deepCopies_;
+    std::vector<shared_ptr<details::copy_base> > deepCopies_;
 
     mutable std::size_t currentPos_;
 
@@ -314,7 +317,7 @@ private:
     }
     
     // this is called by Statement::bind(values)
-    void add_unused(details::use_type_base * u, indicator * i)
+    void add_unused(details::use_type_base * u, shared_ptr<indicator> &i)
     {
         static_cast<details::standard_use_type *>(u)->convert_to_base();
         unused_.insert(std::make_pair(u, i));
@@ -330,17 +333,11 @@ private:
         // delete any uses and indicators which were created  by set() but
         // were not bound by the Statement
         // (bound uses and indicators are deleted in Statement::clean_up())
-        for (std::map<details::use_type_base *, indicator *>::iterator pos =
-            unused_.begin(); pos != unused_.end(); ++pos)
-        {
+        for (unused_t::iterator pos = unused_.begin(), end = unused_.end(); pos != end; ++pos)
             delete pos->first;
-            delete pos->second;
-        }
+        unused_.clear();
 
-        for (std::size_t i = 0; i != deepCopies_.size(); ++i)
-        {
-            delete deepCopies_[i];
-        }
+        deepCopies_.clear();
     }
 };
 
